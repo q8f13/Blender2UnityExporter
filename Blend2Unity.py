@@ -1,7 +1,7 @@
 import bpy
 import random
 import os
-from shutil import copyfile
+from shutil import Error, copyfile
 from shutil import rmtree
 import tarfile
 
@@ -318,7 +318,7 @@ TextureImporter:
                         
                                         
             except:
-                print( "no link" )
+                print( "no link for metallic" )
                 metalnode=None
     
     if metalnode:                
@@ -469,7 +469,7 @@ TextureImporter:
                         
                                         
             except:
-                print( "no link" )
+                print( "no link for albedo" )
                 alnode=None
     if alnode:             
         if not os.path.exists(path+alguid):
@@ -772,16 +772,19 @@ def mainPBRConvert(context, path):
     else:
         print("unitypackage export")    
     path=path
-    mapnames=['Albedo','Subsurface','Subsurface_Radius','Subsurface_Color','Metallic','Specular','Speular_Tint','Rooughness','Anisotropic','Anisotropic_Rotation','Sheen','Sheen_Tint','Clearcoat','Clearcoat_Roughness','IOR','Transmission','Unknown','Normal','Clearcoat_Normal','Tangent']
+    mapnames=['Base Color','Subsurface','Subsurface_Radius','Subsurface_Color','Subsurface_IOR','Subsurface_Anisotropy','Metallic','Specular','Speular_Tint','Rooughness','Anisotropic','Anisotropic_Rotation','Sheen','Sheen_Tint','Clearcoat','Clearcoat_Roughness','IOR','Transmission','Transmission_Roughness','Emission','Emission_Strength','Alpha','Normal','Clearcoat_Normal','Tangent']
+    #  mapnames=['Albedo','Subsurface','Subsurface_Radius','Subsurface_Color','Metallic','Specular','Speular_Tint','Rooughness','Anisotropic','Anisotropic_Rotation','Sheen','Sheen_Tint','Clearcoat','Clearcoat_Roughness','IOR','Transmission','Unknown','Normal','Clearcoat_Normal','Tangent']
         
     mapstoexpo=[]
     
     if context.scene.my_enum=="SECOND" and context.scene.my_boolal:
         mapstoexpo.append(0)
     if context.scene.my_enum=="FIRST" and context.scene.my_boolme:
-        mapstoexpo.append(4)
+        mapstoexpo.append(6)  # blender 3.x metallic idx from 4->6
+        #  mapstoexpo.append(4)
     if context.scene.my_boolno:
-        mapstoexpo.append(17)
+        mapstoexpo.append(22) # blender 3.x normal idx from 17->22
+        #  mapstoexpo.append(17)
     
     roughnode=True
     resultname=""
@@ -790,14 +793,14 @@ def mainPBRConvert(context, path):
     def mean(numbers):
         return float(sum(numbers)) / max(len(numbers), 1)
     ob = bpy.context.object
+    nodes = 0
     if ob.type=='MESH':
         me=ob.data
         mat_offset=len(me.materials)
         for slot in me.materials:
             
             dif = slot.node_tree.nodes['Principled BSDF']
-            socket2=dif.inputs[7]
-            
+            socket2=dif.inputs[9] # roughness idx
             nodes=0
             
             if context.scene.my_enum=="FIRST" and context.scene.my_boolal:
@@ -805,33 +808,41 @@ def mainPBRConvert(context, path):
                 print("Converting Roughness to Albedo alpha")
                 resultname="Albedo"
             if context.scene.my_enum=="SECOND" and context.scene.my_boolme:
-                socket=dif.inputs[4]
+                socket=dif.inputs[6]
                 print("Converting Roughness to Metallic alpha")
                 resultname="Metallic"        
             try:
                 link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket)
                 imageNode = link.from_node #The node this link is coming from
 
+                failsafe = 5
+                while imageNode.type != 'TEX_IMAGE' and failsafe > 0:
+                    print(imageNode.label + "->" + imageNode.inputs[0].links[0].from_node.label)
+                    imageNode = imageNode.from_node
+                    failsafe-=1;
                 if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
-
                     image = imageNode.image #Get the image
                     imagename=image.name
                     print( "result", image.name, image.filepath )
                     newname=slot.name                
             except:
-                print( "no link" )
-                nodes=nodes+1            
+                print( "no link finding base color" )
+                nodes=nodes+1
+            link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket2)
+            imageNode = link.from_node #The node this link is coming from
+            print("imageNode name is " + imageNode.name)
             try:
-                link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket2)
-                imageNode = link.from_node #The node this link is coming from
-
+                failsafe = 5
+                while imageNode.type != 'TEX_IMAGE' and failsafe > 0:
+                    print(imageNode.label + "->" + imageNode.from_node.label)
+                    imageNode = imageNode.from_node
+                    failsafe-=1;
                 if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
-
                     image = imageNode.image #Get the image
                     roughimagename=image.name
                     print( "result", roughimagename, image.filepath )                 
             except:
-                print( "no link" )
+                print( "no link finding roughness" )
                 nodes=nodes+1
                 roughnode=None
     if nodes<2:
@@ -857,7 +868,7 @@ def mainPBRConvert(context, path):
                     b=abs(Alpha_list[index+2]-1)
                     al=mean([r,g,b])
                     RGBA_list_new[index+3]=al
-                    #print(str(RGBA_list_new[index+3]))
+                    print(str(RGBA_list_new[index+3]))
                 index=index+1
             image.pixels=RGBA_list_new
             
@@ -906,11 +917,11 @@ def mainPBRConvert(context, path):
             dif = slot.node_tree.nodes['Principled BSDF']        
             for m in mapstoexpo:
                 istex=None
-                print("Exporting: "+str(m))
+                print("Exporting: "+mapnames[m])
                 socket=dif.inputs[m]
                 for i in range (0,10):
                     try:
-                        if i>0 and not imageNode.name==olddif.name:                            
+                        if i>=0 and not imageNode.name==olddif.name:                            
                             link=next(link for link in slot.node_tree.links if link.to_node==dif)
                         else:    
                             link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket)
@@ -927,8 +938,7 @@ def mainPBRConvert(context, path):
                         else:
                             print(imageNode.name)
                             dif=imageNode
-                                       
-                    except:
+                    except StopIteration:
                         print( "no link" )
                         break
                 if istex:
@@ -1015,7 +1025,8 @@ def mainexp(context, name):
     if context.scene.my_bool:
         for str in lst:
             bpy.ops.object.select_all(action='DESELECT')
-            bpy.data.objects[str].select = True            
+            bpy.data.objects[str].select_set(True)
+            # bpy.data.objects[str].select = True            
             bpy.ops.object.duplicate_move(OBJECT_OT_duplicate={"linked":False, "mode":'TRANSLATION'}, TRANSFORM_OT_translate={"value":(0, 0, 0), "constraint_axis":(False, False, False), "constraint_orientation":'GLOBAL', "mirror":False, "proportional":'DISABLED', "proportional_edit_falloff":'SMOOTH', "proportional_size":1, "snap":False, "snap_target":'CLOSEST', "snap_point":(0, 0, 0), "snap_align":False, "snap_normal":(0, 0, 0), "gpencil_strokes":False, "texture_space":False, "remove_on_cancel":False, "release_confirm":False, "use_accurate":False})
             
             if context.scene.my_bool2:
@@ -1361,9 +1372,10 @@ class UnityExporterPanel(bpy.types.Panel):
     """Creates a Panel in the Object properties window"""
     bl_label = "Unity Exporter"
     bl_idname = "OBJECT_PT_UExporter"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'TOOLS'
-    bl_category = "Unity Export Tools"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "object"
+    # bl_category = "Unity Export Tools"
 
     def draw(self, context):
         layout = self.layout
@@ -1439,6 +1451,16 @@ class UnityExporterPanel(bpy.types.Panel):
         
         row = layout.row()
         row.operator("cusops.allexport")
+
+class HelloWorldPanel(bpy.types.Panel):
+    bl_idname = "OBJECT_PT_hello_world"
+    bl_label = "Hello World"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "object"
+
+    def draw(self, context):
+        self.layout.label(text="Hello World")
 
 def register():
     bpy.utils.register_class(UnityExporterPanel)
