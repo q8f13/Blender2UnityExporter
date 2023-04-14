@@ -6,7 +6,7 @@
 
 ## Tested Environment
 
-- Blender 3.3.5
+- Blender 3.3.5. Only support Principled BSDF
 - Unity 2020.3.37f1 . Both builtin and URP pipeline
 - __Multi mesh object not tested__
 - __Skinned mesh object not tested__
