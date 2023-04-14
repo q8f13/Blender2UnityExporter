@@ -38,18 +38,19 @@ def extract_map(slot, socket_idx, failsafe=15):
         imageNode = socket.links[0].from_node
         skt = socket.links[0].from_socket
         while failsafe > 0 and imageNode.type != 'TEX_IMAGE':
-            for ipt in imageNode.inputs:
-                if len(ipt.links) > 0 and ipt.links[0].to_node==imageNode:
-                    nextnode = ipt.links[0].from_node
-                    # try check which channel did the color data comes from
-                    if m==6 and imageNode.type == 'SEPARATE_COLOR':
-                        metal_from_channel = imageNode.outputs.find(skt.name)
-                        print("metallic data is from channel " + skt.name) 
-                    if m==9 and imageNode.type == 'SEPARATE_COLOR':
-                        rough_from_channel = imageNode.outputs.find(skt.name)
-                        print("roughness data is from channel " + skt.name) 
-                    imageNode = nextnode
-                    break
+            imageNode = next(ipt.links[0] for ipt in imageNode.inputs if ipt.links).from_node
+            #  for ipt in imageNode.inputs:
+                #  if len(ipt.links) > 0 and ipt.links[0].to_node==imageNode:
+                    #  nextnode = ipt.links[0].from_node
+                    #  # try check which channel did the color data comes from
+                    #  if m==6 and imageNode.type == 'SEPARATE_COLOR':
+                        #  metal_from_channel = imageNode.outputs.find(skt.name)
+                        #  print("metallic data is from channel " + skt.name)
+                    #  if m==9 and imageNode.type == 'SEPARATE_COLOR':
+                        #  rough_from_channel = imageNode.outputs.find(skt.name)
+                        #  print("roughness data is from channel " + skt.name)
+                    #  imageNode = nextnode
+                    #  break
                     #  imageNode = ipt.links[0].from_node
             failsafe-=1
 
@@ -184,33 +185,45 @@ ModelImporter:
     imagename=""
     if ob.type=='MESH':
         me=ob.data
-        for slot in me.materials:
-            #  dif=slot.node_tree.nodes['Principled BSDF']
-            result = extract_map(slot, 22)
-            if result[0] == None:
-                normalnode=None
-            else:
-                image = result[0]
-                imagename = result[1]
-                newname=slot.name
-            #  socket=dif.inputs[22]
-            #  try:
-                #  #  link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket)
-                #  imageNode = socket.links[0].from_node
-                #  skt = socket.links[0].from_socket
-                #  failsafe = 15
-                #  while failsafe > 0 and imageNode.type != 'TEX_IMAGE':
-                    #  for ipt in imageNode.inputs:
-                        #  if len(ipt.links) > 0 and ipt.links[0].to_node==imageNode:
-                            #  nextnode = ipt.links[0].from_node
-                            #  # try check which channel did the color data comes from
-                            #  if m==6 and imageNode.type == 'SEPARATE_COLOR':
-                                #  metal_from_channel = imageNode.outputs.find(skt.name)
-                                #  print("metallic data is from channel " + skt.name)
-                            #  imageNode = nextnode
-                            #  break
-                            #  #  imageNode = ipt.links[0].from_node
-                    #  failsafe-=1
+        #  for slot in me.materials:
+        slot = me.materials[0]
+        #  dif=slot.node_tree.nodes['Principled BSDF']
+        result = extract_map(slot, 22)
+        if result[0] == None:
+            normalnode=None
+        else:
+            image = result[0]
+            imagename = result[1]
+            #  newname=slot.name
+        #  socket=dif.inputs[22]
+        #  try:
+            #  #  link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket)
+            #  imageNode = socket.links[0].from_node
+            #  skt = socket.links[0].from_socket
+            #  failsafe = 15
+            #  while failsafe > 0 and imageNode.type != 'TEX_IMAGE':
+                #  for ipt in imageNode.inputs:
+                    #  if len(ipt.links) > 0 and ipt.links[0].to_node==imageNode:
+                        #  nextnode = ipt.links[0].from_node
+                        #  # try check which channel did the color data comes from
+                        #  if m==6 and imageNode.type == 'SEPARATE_COLOR':
+                            #  metal_from_channel = imageNode.outputs.find(skt.name)
+                            #  print("metallic data is from channel " + skt.name)
+                        #  imageNode = nextnode
+                        #  break
+                        #  #  imageNode = ipt.links[0].from_node
+                #  failsafe-=1
+
+            #  if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
+
+                #  image = imageNode.image #Get the image
+                #  imagename=image.name
+                #  print( "result", image.name, image.filepath )
+                #  newname=slot.name
+            #  else:
+                #  link=next(link for link in slot.node_tree.links if link.to_node==imageNode)
+                #  imageNode = link.from_node #The node this link is coming from
+                #  print(imageNode.name)
 
                 #  if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
 
@@ -218,22 +231,11 @@ ModelImporter:
                     #  imagename=image.name
                     #  print( "result", image.name, image.filepath )
                     #  newname=slot.name
-                #  else:
-                    #  link=next(link for link in slot.node_tree.links if link.to_node==imageNode)
-                    #  imageNode = link.from_node #The node this link is coming from
-                    #  print(imageNode.name)
-
-                    #  if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
-
-                        #  image = imageNode.image #Get the image
-                        #  imagename=image.name
-                        #  print( "result", image.name, image.filepath )
-                        #  newname=slot.name
 
 
-            #  except:
-                #  print( "no link" )
-                #  normalnode=None
+        #  except:
+            #  print( "no link" )
+            #  normalnode=None
     
     print(imagename)
     if normalnode:
@@ -399,6 +401,7 @@ TextureImporter:
             "path_root":path,\
             }
     
+    cfgs = mainPBRConvert(context, cfgs)
     if metalnode:                
         if not os.path.exists(path+metguid):
             os.makedirs(path+metguid)                
@@ -407,7 +410,10 @@ TextureImporter:
             bpy.data.objects[assetname].select_set(True)
             bpy.context.view_layer.objects.active=bpy.data.objects[assetname]
 
-        mainPBRConvert(context, cfgs)
+
+        height = cfgs.get('h_metal')
+        if height == None:
+            height = cfgs.get('h_albedo')
         
         #  print(imagename)
 
@@ -435,8 +441,8 @@ TextureImporter:
   mipmaps:
     mipMapMode: 0
     enableMipMap: 1
-    sRGBTexture: 1
-    linearTexture: 0
+    sRGBTexture: 0
+    linearTexture: 1
     fadeOut: 0
     borderMipMap: 0
     mipMapsPreserveCoverage: 0
@@ -566,6 +572,9 @@ TextureImporter:
             #  mainPBRConvert(context, path+alguid+"\\asset")
         
         #  print(imagename)
+        height = cfgs.get('h_albedo')
+        if height == None:
+            height = cfgs.get('h_metal')
 
                   
         #  image = bpy.data.images[imagename]
@@ -856,12 +865,11 @@ def checknode(index):
     ob = bpy.context.object
     if ob.type=='MESH':
         me=ob.data
-        mat_offset=len(me.materials)
+        #  mat_offset=len(me.materials)
         for slot in me.materials:
-            
             dif = slot.node_tree.nodes['Principled BSDF']
             socket2=dif.inputs[index]
-    
+
 
 def mainPBRConvert(context, cfgs, mapsonly = False):
     rough_from_channel = 0
@@ -887,7 +895,8 @@ def mainPBRConvert(context, cfgs, mapsonly = False):
     
     if context.scene.my_enum=="SECOND" and context.scene.my_boolal:
         mapstoexpo.append(0)
-    if context.scene.my_enum=="FIRST" and context.scene.my_boolme:
+    #  if context.scene.my_enum=="FIRST" and context.scene.my_boolme:
+    if context.scene.my_boolme:
         mapstoexpo.append(6)  # blender 3.x metallic idx from 4->6
     if context.scene.my_boolno:
         mapstoexpo.append(22) # blender 3.x normal idx from 17->22
@@ -896,6 +905,8 @@ def mainPBRConvert(context, cfgs, mapsonly = False):
     resultname=""
     newname=""
     imagename=""
+
+    roughimagename=""
     #  def mean(numbers):
         #  return float(sum(numbers)) / max(len(numbers), 1)
     ob = bpy.context.object
@@ -904,75 +915,73 @@ def mainPBRConvert(context, cfgs, mapsonly = False):
     if ob.type=='MESH':
         me=ob.data
         #  mat_offset=len(me.materials)
-        for slot in me.materials:
+        slot = me.materials[0]
+        #  for slot in me.materials:
             
-            dif = slot.node_tree.nodes['Principled BSDF']
-            socket2=dif.inputs[9] # roughness idx
-            nodes=0
-            
-            socket=None
-            if context.scene.my_enum=="FIRST" and context.scene.my_boolal:
-                socket = dif.inputs[0]
-                print("Converting Roughness to Albedo alpha")
-                resultname="Albedo"
-            if context.scene.my_enum=="SECOND" and context.scene.my_boolme:
-                socket=dif.inputs[6]
-                print("Converting Roughness to Metallic alpha")
-                resultname="Metallic"        
+        dif = slot.node_tree.nodes['Principled BSDF']
+        socket2=dif.inputs[9] # roughness idx
+        nodes=0
+        
+        socket=None
+        if context.scene.my_enum=="FIRST" and context.scene.my_boolal:
+            socket = dif.inputs[0]
+            print("Converting Roughness to Albedo alpha")
+            resultname="Albedo"
+        if context.scene.my_enum=="SECOND" and context.scene.my_boolme:
+            socket=dif.inputs[6]
+            print("Converting Roughness to Metallic alpha")
+            resultname="Metallic"        
 
-            # find albedo / metallic map and waiting for fill roughness(smoothness) to alpha channel
-            try:
-                link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket)
-                imageNode = link.from_node #The node this link is coming from
+        # find albedo / metallic map and waiting for fill roughness(smoothness) to alpha channel
+        try:
+            link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket)
+            imageNode = link.from_node #The node this link is coming from
 
-                failsafe = 5
-                while imageNode.type != 'TEX_IMAGE' and failsafe > 0:
-                    nextnode = next(ipt for ipt in imageNode.inputs if ipt.links).links[0].from_node
-                    #  nextnode = imageNode.inputs[0].links[0].from_node
-                    #  print(imageNode.label + "->" + nextnode)
-                    imageNode = nextnode
-                    failsafe-=1;
-                if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
-                    image = imageNode.image #Get the image
-                    imagename=image.name
-                    print( "result", image.name, image.filepath )
-                    newname=slot.name                
-                print( "albedo or metallic map for alpha channel injection found" )
-            except:
-                print( "no link for base color" )
-                nodes=nodes+1
-            #  find roughtness map
-            try:
-                link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket2)
-                imageNode = link.from_node #The node this link is coming from
-                #  print("imageNode name is " + imageNode.name)
-                failsafe = 5
-                skt=link.from_socket
-                while imageNode.type != 'TEX_IMAGE' and failsafe > 0:
-                    nextnode = next(ipt for ipt in imageNode.inputs if ipt.links).links[0].from_node
-                    #  print(imageNode.label + "->" + nextnode)
-                    if imageNode.type == 'SEPARATE_COLOR':
-                        #  skt = imageNode.inputs[0].links[0].from_socket
-                        rough_from_channel = imageNode.outputs.find(skt.name)
-                        print("roughtness data is from channel " + skt.name) 
-                    imageNode = nextnode
-                    # check if color data is been seperated for roughness
-                    failsafe-=1;
-                if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
-                    image = imageNode.image #Get the image
-                    roughimagename=image.name
-                    print( "result", roughimagename, image.filepath )                 
-                print( "roughness map found" )
-            except:
-                print( "no link for roughness" )
-                nodes=nodes+1
-                roughnode=None
+            failsafe = 5
+            while imageNode.type != 'TEX_IMAGE' and failsafe > 0:
+                imageNode = next(ipt for ipt in imageNode.inputs if ipt.links).links[0].from_node
+                failsafe-=1;
+            if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
+                image = imageNode.image #Get the image
+                imagename=image.name
+                print( "result", image.name, image.filepath )
+                newname=slot.name                
+            print( "albedo or metallic map for alpha channel injection found" )
+        except:
+            print( "no link for base color" )
+            nodes=nodes+1
+        #  find roughtness map
+        try:
+            link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket2)
+            imageNode = link.from_node #The node this link is coming from
+            #  print("imageNode name is " + imageNode.name)
+            failsafe = 5
+            skt=link.from_socket
+            while imageNode.type != 'TEX_IMAGE' and failsafe > 0:
+                #  print(imageNode.label + "->" + nextnode)
+                if imageNode.type == 'SEPARATE_COLOR':
+                    rough_from_channel = imageNode.outputs.find(skt.name)
+                    print("roughtness data is from channel " + skt.name) 
+                imageNode = next(ipt for ipt in imageNode.inputs if ipt.links).links[0].from_node
+                # check if color data is been seperated for roughness
+                failsafe-=1;
+            if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
+                image = imageNode.image #Get the image
+                roughimagename=image.name
+                print( "result", roughimagename, image.filepath )                 
+            print( "roughness map found" )
+        except:
+            print( "no link for roughness" )
+            nodes=nodes+1
+            roughnode=None
     if nodes<2:
         if roughnode:                    
             imageold = bpy.data.images[imagename]  
+            print("name of image which to inject: " + imagename)
             rough_img=bpy.data.images[roughimagename]
             width = imageold.size[0]
             height = imageold.size[1]
+            print("size of image whitch to inject: " + str(height))
             bpy.ops.image.new(name="PBR_Diff", width=width, height=height)
             image = bpy.data.images['PBR_Diff']  
             index=0
@@ -1017,8 +1026,9 @@ def mainPBRConvert(context, cfgs, mapsonly = False):
             image.file_format = context.scene.my_enum2            
             image.save()
             print("save injected albedo/metallic map to " + path)
-            image.user_clear()
-            bpy.data.images.remove(image)
+            # do not clear bpy.data.images['PBR_Diff'] yet for possible usage later
+            #  image.user_clear()
+            #  bpy.data.images.remove(image)
             
         
         else:
@@ -1059,114 +1069,103 @@ def mainPBRConvert(context, cfgs, mapsonly = False):
     if ob.type=='MESH':
         me=ob.data
         #  mat_offset=len(me.materials)
-        for slot in me.materials: 
-            #  olddif = slot.node_tree.nodes['Principled BSDF']
-            dif = slot.node_tree.nodes['Principled BSDF']        
-            for m in mapstoexpo:
-                istex=None
-                print("Try fetching: "+mapnames[m] + "...")
-                #  if len(dif.inputs) < 26:
-                    #  print("dif name is " + dif.name)
-                socket=dif.inputs[m]
+        slot = me.materials[0]
+        #  olddif = slot.node_tree.nodes['Principled BSDF']
+        dif = slot.node_tree.nodes['Principled BSDF']        
+        for m in mapstoexpo:
+            istex=None
+            print("Try fetching: "+mapnames[m] + "...")
+            #  if len(dif.inputs) < 26:
+                #  print("dif name is " + dif.name)
+            socket=dif.inputs[m]
 
-                #  link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket)
-                #  imageNode = link.from_node
-                if len(socket.links) == 0:
-                    continue
-                imageNode = socket.links[0].from_node
-                skt = socket.links[0].from_socket
-                failsafe = 15
-                while failsafe > 0 and imageNode.type != 'TEX_IMAGE':
-                    for ipt in imageNode.inputs:
-                        if len(ipt.links) > 0 and ipt.links[0].to_node==imageNode:
-                            nextnode = ipt.links[0].from_node
-                            # try check which channel did the color data comes from
-                            if m==6 and imageNode.type == 'SEPARATE_COLOR':
-                                metal_from_channel = imageNode.outputs.find(skt.name)
-                                print("metallic data is from channel " + skt.name) 
-                            imageNode = nextnode
-                            break
-                            #  imageNode = ipt.links[0].from_node
-                    failsafe-=1
+            #  link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket)
+            #  imageNode = link.from_node
+            if len(socket.links) == 0:
+                print("no map for socket " + mapnames[m])
+                continue
+            imageNode = socket.links[0].from_node
+            skt = socket.links[0].from_socket
+            failsafe = 15
+            while failsafe > 0 and imageNode.type != 'TEX_IMAGE':
+                # try check which channel did the color data comes from
+                if m==6 and imageNode.type == 'SEPARATE_COLOR':
+                    metal_from_channel = imageNode.outputs.find(skt.name)
+                    print("metallic data is from channel " + skt.name) 
+                imageNode = next(ipt.links[0] for ipt in imageNode.inputs if ipt.links).from_node
+                failsafe-=1
 
-                if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
-                    image = imageNode.image #Get the image
-                    imagename=image.name
-                    print( "result", image.name, image.filepath )
-                    newname=slot.name
-                    istex=True
+            if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
+                image = imageNode.image #Get the image
+                imagename=image.name
+                print( "result", image.name, image.filepath )
+                newname=slot.name
+                istex=True
 
-                #  for i in range (0,10):
-                    #  try:
-                        #  if i>0 and not imageNode.name==olddif.name:
-                            #  link=next(link for link in slot.node_tree.links if link.to_node==dif)
-                        #  else:
-                            #  link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket)
-                        #  imageNode = link.from_node #The node this link is coming from
-
-                        #  if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
-                            #  #  print(imageNode.name)
-                            #  image = imageNode.image #Get the image
-                            #  imagename=image.name
-                            #  print( "result", image.name, image.filepath )
-                            #  newname=slot.name
-                            #  istex=True
-                            #  break
-                        #  else:
-                            #  print(imageNode.name)
-                            #  dif=imageNode
-                    #  except StopIteration:
-                        #  print( "no link" )
-                        #  break
-                if istex:
-                    imageold = bpy.data.images[imagename]
-                    width = imageold.size[0]
-                    height = imageold.size[1]
-                    bpy.ops.image.new(name="Temporary_map_to_export", width=width, height=height)
-                    RGBA_list = list(imageold.pixels)            
-                    image = bpy.data.images['Temporary_map_to_export']
-                    # check if source is metallic map
-                    # this branch indicate that user choosed 'baking smoothness into albedo alpha'
-                    # so making metallic map brand new is ok
-                    # TODO: make mask map for HDRP
+            if istex:
+                imageold = bpy.data.images[imagename]
+                if m == 6 and context.scene.my_enum=="SECOND" and context.scene.my_boolme:
+                    imageold = bpy.data.images['PBR_Diff']
+                    print("get incomplete texture for filling R channel of metallic map")
+                width = imageold.size[0]
+                height = imageold.size[1]
+                bpy.ops.image.new(name="Temporary_map_to_export", width=width, height=height)
+                RGBA_list = list(imageold.pixels)            
+                image = bpy.data.images['Temporary_map_to_export']
+                # if user choosed baking roughtness into A channel of metallic map
+                # then here we should make sure metallic R is valid
+                # TODO: make mask map for HDRP
+                if m == 6 and metal_from_channel != 0 and context.scene.my_boolme:
+                    RGBA_list_new=[]
+                    for i in RGBA_list:    
+                        RGBA_list_new.append(i)
+                    index=0
+                    print("copying pixels from channel " + CHANNELS[metal_from_channel] + " to R channel in metallic map...")
+                    for i in RGBA_list:
+                        if index%4==0:
+                            # fill metallic data
+                            RGBA_list_new[index+0]=RGBA_list[index+metal_from_channel]  # Metallic map for unity use r channel
+                            RGBA_list_new[index+1]=RGBA_list[index+metal_from_channel]
+                            RGBA_list_new[index+2]=RGBA_list[index+metal_from_channel]
+                            # do not touch alpha channel for preventing overwrite smoothness
+                            #  RGBA_list_new[index+3]=1.0  # alpha
+                        index=index+1
+                    image.pixels=RGBA_list_new
+                else:
+                    image.pixels=RGBA_list
+                filetp=""
+                if context.scene.my_enum2=="PNG":
+                    filetp='png'
+                else:
+                    filetp='tga'
+                   
+                if mapsonly:
+                    path=context.scene.my_string_prop+newname+"_"+mapnames[m]+"."+filetp
+                else:
                     if m == 6:
-                        RGBA_list_new=[]
-                        for i in RGBA_list:    
-                            RGBA_list_new.append(i)
-                        index=0
-                        print("copying pixels from channel " + CHANNELS[metal_from_channel] + " to R channel in metallic map...")
-                        for i in RGBA_list:
-                            if index%4==0:
-                                # find specific channel
-                                RGBA_list_new[index+0]=RGBA_list[index+metal_from_channel]  # Metallic map for unity use r channel
-                                RGBA_list_new[index+1]=0.0
-                                RGBA_list_new[index+2]=0.0
-                                RGBA_list_new[index+3]=1.0  # alpha
-                            index=index+1
-                        image.pixels=RGBA_list_new
+                        path=path_metal
+                        cfgs['h_metal'] = image.size[1]
+                        cfgs['w_metal'] = image.size[0]
+                        print("metal map size is " + str(image.size[1]))
+                    elif m == 0:
+                        cfgs['h_albedo'] = image.size[1]
+                        cfgs['w_albedo'] = image.size[0]
+                        print("albedo map size is " + str(image.size[1]))
+                        path=path_albedo
                     else:
-                        image.pixels=RGBA_list
-                    filetp=""
-                    if context.scene.my_enum2=="PNG":
-                        filetp='png'
-                    else:
-                        filetp='tga'
-                       
-                    if mapsonly:
-                        path=context.scene.my_string_prop+newname+"_"+mapnames[m]+"."+filetp
-                    else:
-                        if m == 6:
-                            path=path_metal
-                        elif m == 0:
-                            path=path_albedo
-                        else:
-                            path=path_normal
-                    print("Exporting "+mapnames[m] + "as " + path)
-                    image.filepath_raw = path
-                    image.file_format = context.scene.my_enum2
-                    image.save()
-                    image.user_clear()
-                    bpy.data.images.remove(image)                         
+                        cfgs['h_normal'] = image.size[1]
+                        cfgs['w_normal'] = image.size[0]
+                        print("normal map size is " + str(image.size[1]))
+                        path=path_normal
+                print("Exporting "+mapnames[m] + "as " + path)
+                image.filepath_raw = path
+                image.file_format = context.scene.my_enum2
+                image.save()
+                image.user_clear()
+                bpy.data.images.remove(image)                         
+                if bpy.data.images.get('PBR_Diff') != None and imageold == bpy.data.images['PBR_Diff']:
+                    bpy.data.images.remove(imageold)                         
+                    
 
     # prefabs
     prefabguid = cfgs['guid_prefab']
@@ -1329,7 +1328,7 @@ MonoImporter:
     file.close()
 
     print("write postprocess script done") 
-
+    return cfgs
 
 
 def mainmatuni(context):
