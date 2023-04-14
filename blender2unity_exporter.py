@@ -927,7 +927,8 @@ def mainPBRConvert(context, cfgs, mapsonly = False):
 
                 failsafe = 5
                 while imageNode.type != 'TEX_IMAGE' and failsafe > 0:
-                    nextnode = imageNode.inputs[0].links[0].from_node
+                    nextnode = next(ipt for ipt in imageNode.inputs if ipt.links).links[0].from_node
+                    #  nextnode = imageNode.inputs[0].links[0].from_node
                     #  print(imageNode.label + "->" + nextnode)
                     imageNode = nextnode
                     failsafe-=1;
@@ -940,7 +941,7 @@ def mainPBRConvert(context, cfgs, mapsonly = False):
             except:
                 print( "no link for base color" )
                 nodes=nodes+1
-            # find roughtness map
+            #  find roughtness map
             try:
                 link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket2)
                 imageNode = link.from_node #The node this link is coming from
@@ -948,7 +949,7 @@ def mainPBRConvert(context, cfgs, mapsonly = False):
                 failsafe = 5
                 skt=link.from_socket
                 while imageNode.type != 'TEX_IMAGE' and failsafe > 0:
-                    nextnode = imageNode.inputs[0].links[0].from_node
+                    nextnode = next(ipt for ipt in imageNode.inputs if ipt.links).links[0].from_node
                     #  print(imageNode.label + "->" + nextnode)
                     if imageNode.type == 'SEPARATE_COLOR':
                         #  skt = imageNode.inputs[0].links[0].from_socket
@@ -1070,6 +1071,8 @@ def mainPBRConvert(context, cfgs, mapsonly = False):
 
                 #  link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket)
                 #  imageNode = link.from_node
+                if len(socket.links) == 0:
+                    continue
                 imageNode = socket.links[0].from_node
                 skt = socket.links[0].from_socket
                 failsafe = 15
@@ -1287,6 +1290,7 @@ MeshRenderer:
     ppscript="""using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEditor;
 
 public class PrefabPostProcess : AssetPostprocessor
