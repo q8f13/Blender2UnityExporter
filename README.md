@@ -17,15 +17,15 @@ Export selected mesh object in blender into __.unitypackge__ file.
 
 Which contains fbx mesh file and its related materail / textures.
 
-A ready-to-use prefab will be also provided
-
-And an extra script for asset post processing
+A ready-to-use prefab will also be provided with extra script for asset post processing
 
 ---
 
 ## TODO:
 
-- Export separate FBX file
+- ~~Export separate FBX file~~
 - Export textures only
 - Skinned mesh support
+- Multi materials support
+- Multi mesh support
 - ...
