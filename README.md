@@ -2,7 +2,7 @@
 
 
 
-# NOTE: This is an incomplete overhaul based on (origin script)[https://github.com/JohnnieWooker/Blend2Unity]. No reliable promise at the moment
+# NOTE: This is an incomplete overhaul based on origin script. No reliable promise at the moment
 
 ## Tested Environment
 
