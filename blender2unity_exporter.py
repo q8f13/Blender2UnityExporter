@@ -1302,7 +1302,15 @@ public class PrefabPostProcess : AssetPostprocessor
         g.GetComponent<MeshFilter>().sharedMesh = msh;
 
         MeshRenderer mr = g.GetComponentInChildren<MeshRenderer>();
-        mr.sharedMaterial.shader = GraphicsSettings.currentRenderPipeline.defaultShader;
+        Material m = mr.sharedMaterial;
+        if(GraphicsSettings.currentRenderPipeline != null)
+            mr.sharedMaterial.shader = GraphicsSettings.currentRenderPipeline.defaultShader;
+
+        // clean up
+        string scriptPath = this.assetPath.Substring(0, this.assetPath.LastIndexOf("/") + 1) + "/PrefabPostProcess.cs";
+        AssetDatabase.DeleteAsset(scriptPath);
+        AssetDatabase.ImportAsset(this.assetPath);
+        AssetDatabase.Refresh(ImportAssetOptions.Default);
     }
 }
     """
