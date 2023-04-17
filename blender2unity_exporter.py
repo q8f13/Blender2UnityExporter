@@ -21,48 +21,14 @@ import tarfile
     #  }
 
 CHANNELS = ['R','G','B','A']
-mapnames=['Base Color','Subsurface','Subsurface_Radius','Subsurface_Color','Subsurface_IOR','Subsurface_Anisotropy','Metallic','Specular','Speular_Tint','Rooughness','Anisotropic','Anisotropic_Rotation','Sheen','Sheen_Tint','Clearcoat','Clearcoat_Roughness','IOR','Transmission','Transmission_Roughness','Emission','Emission_Strength','Alpha','Normal','Clearcoat_Normal','Tangent']
+#  rough_from_channel = 0
+#  metal_from_channel = 0
+#  mapnames=['Base Color','Subsurface','Subsurface_Radius','Subsurface_Color','Subsurface_IOR','Subsurface_Anisotropy','Metallic','Specular','Speular_Tint','Rooughness','Anisotropic','Anisotropic_Rotation','Sheen','Sheen_Tint','Clearcoat','Clearcoat_Roughness','IOR','Transmission','Transmission_Roughness','Emission','Emission_Strength','Alpha','Normal','Clearcoat_Normal','Tangent']
 
 def randomguid(length):
     chars=['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f']
     return ''.join(random.choice(chars) for i in range(length))
 
-def extract_map(slot, socket_idx, failsafe=15):
-    dif=slot.node_tree.nodes['Principled BSDF']
-    m = socket_idx
-    socket=dif.inputs[m]
-    result_map = None
-    image = None
-    imagename = "unnamed"
-    try:
-        imageNode = socket.links[0].from_node
-        skt = socket.links[0].from_socket
-        while failsafe > 0 and imageNode.type != 'TEX_IMAGE':
-            imageNode = next(ipt.links[0] for ipt in imageNode.inputs if ipt.links).from_node
-            #  for ipt in imageNode.inputs:
-                #  if len(ipt.links) > 0 and ipt.links[0].to_node==imageNode:
-                    #  nextnode = ipt.links[0].from_node
-                    #  # try check which channel did the color data comes from
-                    #  if m==6 and imageNode.type == 'SEPARATE_COLOR':
-                        #  metal_from_channel = imageNode.outputs.find(skt.name)
-                        #  print("metallic data is from channel " + skt.name)
-                    #  if m==9 and imageNode.type == 'SEPARATE_COLOR':
-                        #  rough_from_channel = imageNode.outputs.find(skt.name)
-                        #  print("roughness data is from channel " + skt.name)
-                    #  imageNode = nextnode
-                    #  break
-                    #  imageNode = ipt.links[0].from_node
-            failsafe-=1
-
-        if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
-            image = imageNode.image #Get the image
-            imagename=image.name
-            print( "result", image.name, image.filepath )
-            newname=slot.name
-    except:
-        print( "no link for " + mapnames[m])
-
-    return (image, imagename)
 
 
 def allexport(context):
@@ -176,79 +142,51 @@ ModelImporter:
     file.write("Assets/"+assetname+"/"+assetname+".fbx")
 
 
-    #export normalmap
-   
-    normalnode=True    
-    #bpy.data.objects[assetname].select = True 
-    bpy.data.objects[assetname].select_set(True)
-    ob = bpy.data.objects[assetname]
-    imagename=""
-    if ob.type=='MESH':
-        me=ob.data
-        #  for slot in me.materials:
-        slot = me.materials[0]
-        #  dif=slot.node_tree.nodes['Principled BSDF']
-        result = extract_map(slot, 22)
-        if result[0] == None:
-            normalnode=None
-        else:
-            image = result[0]
-            imagename = result[1]
-            #  newname=slot.name
-        #  socket=dif.inputs[22]
-        #  try:
-            #  #  link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket)
-            #  imageNode = socket.links[0].from_node
-            #  skt = socket.links[0].from_socket
-            #  failsafe = 15
-            #  while failsafe > 0 and imageNode.type != 'TEX_IMAGE':
-                #  for ipt in imageNode.inputs:
-                    #  if len(ipt.links) > 0 and ipt.links[0].to_node==imageNode:
-                        #  nextnode = ipt.links[0].from_node
-                        #  # try check which channel did the color data comes from
-                        #  if m==6 and imageNode.type == 'SEPARATE_COLOR':
-                            #  metal_from_channel = imageNode.outputs.find(skt.name)
-                            #  print("metallic data is from channel " + skt.name)
-                        #  imageNode = nextnode
-                        #  break
-                        #  #  imageNode = ipt.links[0].from_node
-                #  failsafe-=1
-
-            #  if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
-
-                #  image = imageNode.image #Get the image
-                #  imagename=image.name
-                #  print( "result", image.name, image.filepath )
-                #  newname=slot.name
-            #  else:
-                #  link=next(link for link in slot.node_tree.links if link.to_node==imageNode)
-                #  imageNode = link.from_node #The node this link is coming from
-                #  print(imageNode.name)
-
-                #  if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
-
-                    #  image = imageNode.image #Get the image
-                    #  imagename=image.name
-                    #  print( "result", image.name, image.filepath )
-                    #  newname=slot.name
-
-
-        #  except:
-            #  print( "no link" )
-            #  normalnode=None
+    cfgs = {\
+            "path_met":path+metguid+"\\asset",\
+            "path_al":path+alguid+"\\asset",\
+            "path_nor":path+norguid+"\\asset",\
+            "guid_prefab":prefabguid,\
+            "guid_script":scriptguid,\
+            "guid_fbx":fbxguid,\
+            "guid_mat":matguid,\
+            "path_root":path,\
+            }
     
-    print(imagename)
+    bpy.data.objects[assetname].select_set(True)
+    cfgs = mainPBRConvert(context, cfgs)
+
+    #export normalmap
+    normalnode=True
+    #bpy.data.objects[assetname].select = True
+    bpy.data.objects[assetname].select_set(True)
+    #  ob = bpy.data.objects[assetname]
+    #  imagename=""
+    #  if ob.type=='MESH':
+        #  me=ob.data
+        #  #  for slot in me.materials:
+        #  # TODO: multiple materials
+        #  slot = me.materials[0]
+        #  #  dif=slot.node_tree.nodes['Principled BSDF']
+        #  result = retrieve_image('Normal', slot, None)
+        #  if result == None:
+            #  normalnode=None
+        #  else:
+            #  image = result
+            #  imagename = image.name
+
     if normalnode:
-        if not os.path.exists(path+norguid):
-            os.makedirs(path+norguid)
-                  
-        image = bpy.data.images[imagename]
-        height=image.size[1]
-        width=image.size[0]
-        imgpath=bpy.path.abspath(image.filepath_raw)
-        print(imgpath)
-        copyfile(imgpath,path+norguid+"\\asset")    
-            
+        #  if not os.path.exists(path+norguid):
+            #  os.makedirs(path+norguid)
+
+        #  image = bpy.data.images[imagename]
+        height=cfgs['h_normal']
+        #  height=image.size[1]
+        #  width=image.size[0]
+        #  imgpath=bpy.path.abspath(image.filepath_raw)
+        #  print(imgpath)
+        #  copyfile(imgpath,path+norguid+"\\asset")
+
         normeta="""fileFormatVersion: 2
 guid: """+norguid+"""
 timeCreated: 1505499899
@@ -327,16 +265,18 @@ TextureImporter:
     sprites: []
     outline: []
     physicsShape: []
-  spritePackingTag: 
-  userData: 
-  assetBundleName: 
-  assetBundleVariant: 
+  spritePackingTag:
+  userData:
+  assetBundleName:
+  assetBundleVariant:
     """
-        file=open(path+norguid+"\\asset.meta","w")
-        file.write(normeta)
-        
-        file=open(path+norguid+"\\pathname","w")
-        file.write("Assets/"+assetname+"/"+assetname+"_Normal."+context.scene.my_enum2)
+        #  file=open(path+norguid+"\\asset.meta","w")
+        #  file.write(normeta)
+
+        #  file=open(path+norguid+"\\pathname","w")
+        #  file.write("Assets/"+assetname+"/"+assetname+"_Normal."+context.scene.my_enum2)
+
+        prepare_upack_asset(path, norguid,  assetname, assetname+"_Normal."+context.scene.my_enum2, None, normeta)
     
     
     
@@ -345,8 +285,8 @@ TextureImporter:
     
         
        
-    ob = bpy.data.objects[assetname]
-    imagename=""
+    #  ob = bpy.data.objects[assetname]
+    #  imagename=""
     metalnode=True
     #  if ob.type=='MESH':
         #  me=ob.data
@@ -390,18 +330,6 @@ TextureImporter:
                 #  metalnode=None
 
     # submesh hash is hash from a 'MeshName_MeshPartX', X is the index of mesh
-    cfgs = {\
-            "path_met":path+metguid+"\\asset",\
-            "path_al":path+alguid+"\\asset",\
-            "path_nor":path+norguid+"\\asset",\
-            "guid_prefab":prefabguid,\
-            "guid_script":scriptguid,\
-            "guid_fbx":fbxguid,\
-            "guid_mat":matguid,\
-            "path_root":path,\
-            }
-    
-    cfgs = mainPBRConvert(context, cfgs)
     if metalnode:                
         if not os.path.exists(path+metguid):
             os.makedirs(path+metguid)                
@@ -507,12 +435,13 @@ TextureImporter:
   assetBundleVariant: 
     """   
             
-        file=open(path+metguid+"\\asset.meta","w")
-        file.write(metmeta)
-        
-        file=open(path+metguid+"\\pathname","w")
-        file.write("Assets/"+assetname+"/"+assetname+"_Metallic."+context.scene.my_enum2)
+        #  file=open(path+metguid+"\\asset.meta","w")
+        #  file.write(metmeta)
+
+        #  file=open(path+metguid+"\\pathname","w")
+        #  file.write("Assets/"+assetname+"/"+assetname+"_Metallic."+context.scene.my_enum2)
     
+        prepare_upack_asset(path, metguid, assetname, assetname+"_Metallic."+context.scene.my_enum2, None, metmeta)
     
     
     
@@ -564,11 +493,11 @@ TextureImporter:
                 #  print( "no link for albedo" )
                 #  alnode=None
     if alnode:             
-        if not os.path.exists(path+alguid):
-            os.makedirs(path+alguid)               
-        if context.scene.my_enum=="FIRST":
-            bpy.data.objects[assetname].select_set(True)
-            bpy.context.view_layer.objects.active=bpy.data.objects[assetname]
+        #  if not os.path.exists(path+alguid):
+            #  os.makedirs(path+alguid)
+        #  if context.scene.my_enum=="FIRST":
+            #  bpy.data.objects[assetname].select_set(True)
+            #  bpy.context.view_layer.objects.active=bpy.data.objects[assetname]
             #  mainPBRConvert(context, path+alguid+"\\asset")
         
         #  print(imagename)
@@ -662,17 +591,20 @@ TextureImporter:
      
     """        
         
-        file=open(path+alguid+"\\asset.meta","w")
-        file.write(almeta)
+        #  file=open(path+alguid+"\\asset.meta","w")
+        #  file.write(almeta)
+
+        #  file=open(path+alguid+"\\pathname","w")
+        #  file.write("Assets/"+assetname+"/"+assetname+"_Albedo."+context.scene.my_enum2)
         
-        file=open(path+alguid+"\\pathname","w")
-        file.write("Assets/"+assetname+"/"+assetname+"_Albedo."+context.scene.my_enum2)                  
+        prepare_upack_asset(path, alguid, assetname, assetname+"_Albedo."+context.scene.my_enum2, None, almeta)
 
     #export material
-    if not os.path.exists(path+matguid):
-        os.makedirs(path+matguid)
-    file=open(path+matguid+"\\pathname","w")
-    file.write("Assets/"+assetname+"/Materials/Material.mat")     
+    #  if not os.path.exists(path+matguid):
+        #  os.makedirs(path+matguid)
+    #  file=open(path+matguid+"\\pathname","w")
+    #  file.write("Assets/"+assetname+"/Materials/Material.mat")
+    #  file.write("Assets/"+assetname+"/"+assetname+"_Metallic."+context.scene.my_enum2)
         
     matmeta="""fileFormatVersion: 2
 guid: """+matguid+"""
@@ -685,8 +617,8 @@ NativeFormatImporter:
   assetBundleVariant: 
 """    
 
-    file=open(path+matguid+"\\asset.meta","w")
-    file.write(matmeta)
+    #  file=open(path+matguid+"\\asset.meta","w")
+    #  file.write(matmeta)
     
     sm=1
     
@@ -703,8 +635,8 @@ NativeFormatImporter:
     metalstr="{x: 1, y: 1}"
     alstr="{x: 1, y: 1}"
     
-    if normalnode:
-        normalstr="{fileID: 2800000, guid: "+norguid+", type: 3}"
+    #  if normalnode:
+    normalstr="{fileID: 2800000, guid: "+norguid+", type: 3}"
     if metalnode:
         metalstr="{fileID: 2800000, guid: "+metguid+", type: 3}"
     if alnode:
@@ -801,15 +733,18 @@ Material:
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
 """
     
-    file=open(path+matguid+"\\asset","w")
-    file.write(matasset)
+    #  file=open(path+matguid+"\\asset","w")
+    #  file.write(matasset)
+
+    #  file.write("Assets/"+assetname+"/Materials/Material.mat")
+    prepare_upack_asset(path, matguid, assetname, "Material.mat", matasset, matmeta)
     
     #folder1
     
-    if not os.path.exists(path+fol1guid):
-        os.makedirs(path+fol1guid)
-    file=open(path+fol1guid+"\\pathname","w")
-    file.write("Assets/"+assetname)  
+    #  if not os.path.exists(path+fol1guid):
+        #  os.makedirs(path+fol1guid)
+    #  file=open(path+fol1guid+"\\pathname","w")
+    #  file.write("Assets/"+assetname)
     
     fol1asset="""fileFormatVersion: 2
 guid: """+fol1guid+"""
@@ -821,28 +756,30 @@ DefaultImporter:
   assetBundleName: 
   assetBundleVariant: 
 """
-    file=open(path+fol1guid+"\\asset.meta","w")
-    file.write(fol1asset)
+    #  file=open(path+fol1guid+"\\asset.meta","w")
+    #  file.write(fol1asset)
+
+    prepare_upack_asset(path, fol1guid, "", assetname, None, fol1asset)
     
      #folder2
     
-    if not os.path.exists(path+fol2guid):
-        os.makedirs(path+fol2guid)
-    file=open(path+fol2guid+"\\pathname","w")
-    file.write("Assets/"+assetname+"/Materials")  
-    
-    fol2asset="""fileFormatVersion: 2
-guid: """+fol2guid+"""
-folderAsset: yes
-timeCreated: 1505557484
-licenseType: Free
-DefaultImporter:
-  userData: 
-  assetBundleName: 
-  assetBundleVariant: 
-"""
-    file=open(path+fol2guid+"\\asset.meta","w")
-    file.write(fol2asset)
+    #  if not os.path.exists(path+fol2guid):
+        #  os.makedirs(path+fol2guid)
+    #  file=open(path+fol2guid+"\\pathname","w")
+    #  file.write("Assets/"+assetname+"/Materials")
+
+    #  fol2asset="""fileFormatVersion: 2
+#  guid: """+fol2guid+"""
+#  folderAsset: yes
+#  timeCreated: 1505557484
+#  licenseType: Free
+#  DefaultImporter:
+  #  userData:
+  #  assetBundleName:
+  #  assetBundleVariant:
+#  """
+    #  file=open(path+fol2guid+"\\asset.meta","w")
+    #  file.write(fol2asset)
     file.close()
     
     # pack
@@ -856,6 +793,59 @@ DefaultImporter:
         rmtree(path)
     except:
         print("WARNING: fail to rm tmp folder, check if folder is used by other process")
+
+
+
+# create asset for unitypackage
+def prepare_upack_asset(path, guid, folder_name, asset_name, content, meta):
+    if not os.path.exists(path+guid):
+        os.makedirs(path+guid)
+              
+    #  image = bpy.data.images[imagename]
+    #  height=image.size[1]
+    #  width=image.size[0]
+    #  asset_path=bpy.path.abspath(content.filepath_raw)
+    #  print(imgpath)
+    if content:
+        file=open(path+guid+"\\asset","w")
+        file.write(content)
+
+    file=open(path+guid+"\\asset.meta","w")
+    file.write(meta)
+    
+    file=open(path+guid+"\\pathname","w")
+    file.write("Assets/"+folder_name+"/"+asset_name)
+    pass
+
+
+# retrieve image using socket name and target material
+# try to find TEX_IMAGE type node recursively from the given input socket from princpled BSDF node
+# only support principled BSDF
+def retrieve_image(socket_name, material, cfg, failsafe = 5):
+    dif = material.node_tree.nodes['Principled BSDF']
+    socket = dif.inputs[socket_name]
+    img = None
+    try:
+        link = next(link for link in material.node_tree.links if link.to_node == dif and link.to_socket == socket)
+        img_node = link.from_node
+        skt = link.from_socket
+        while img_node.type != 'TEX_IMAGE' and failsafe > 0:
+            # try find color channel for data
+            # use match case in python3.10 or higher version
+            if img_node.type == 'SEPARATE_COLOR' and cfg != None:
+                if socket_name == 'Roughness':
+                    cfg['rough_from_channel'] = img_node.outputs.find(skt.name)
+                    print("roughness data is from channel " + skt.name) 
+                elif socket_name == 'Metallic':
+                    cfg['metal_from_channel'] = img_node.outputs.find(skt.name)
+                    print("metallic data is from channel " + skt.name) 
+            img_node = next(ipt for ipt in img_node.inputs if ipt.links).links[0].from_node
+            failsafe-=1;
+        if img_node.type == 'TEX_IMAGE':
+            img = img_node.image
+    except:
+        print( "fail to retrieve image from material {}, using socket {}".format(material.name, socket) )
+    return img
 
 def make_tarfile(output_filename, source_dir):
     with tarfile.open(output_filename, "w:bz2") as tar:
@@ -872,8 +862,8 @@ def checknode(index):
 
 
 def mainPBRConvert(context, cfgs, mapsonly = False):
-    rough_from_channel = 0
-    metal_from_channel = 0
+    cfgs['rough_from_channel'] = 0
+    cfgs['metal_from_channel'] = 0
     if not os.path.exists(context.scene.my_string_prop):
         os.makedirs(context.scene.my_string_prop)
     
@@ -881,25 +871,34 @@ def mainPBRConvert(context, cfgs, mapsonly = False):
         #  mapsonly=True
         
         
+    path_albedo = cfgs['path_al']
+    path_normal = cfgs['path_nor']
+    path_metal = cfgs['path_met']
     if mapsonly:    
         print("============ START =============== maps only")
     else:
-        path_metal = cfgs['path_met']
-        path_albedo = cfgs['path_al']
-        path_normal = cfgs['path_nor']
         print("============ START =============== unitypackage export")    
     #  path=path
     #  mapnames=['Albedo','Subsurface','Subsurface_Radius','Subsurface_Color','Metallic','Specular','Speular_Tint','Rooughness','Anisotropic','Anisotropic_Rotation','Sheen','Sheen_Tint','Clearcoat','Clearcoat_Roughness','IOR','Transmission','Unknown','Normal','Clearcoat_Normal','Tangent']
         
     mapstoexpo=[]
-    
-    if context.scene.my_enum=="SECOND" and context.scene.my_boolal:
-        mapstoexpo.append(0)
-    #  if context.scene.my_enum=="FIRST" and context.scene.my_boolme:
+
+
+    # albedo always needed anyhow
+    mapstoexpo.append('Base Color')
     if context.scene.my_boolme:
-        mapstoexpo.append(6)  # blender 3.x metallic idx from 4->6
+        mapstoexpo.append('Metallic')  # blender 3.x metallic idx from 4->6
     if context.scene.my_boolno:
-        mapstoexpo.append(22) # blender 3.x normal idx from 17->22
+        mapstoexpo.append('Normal') # blender 3.x normal idx from 17->22
+    
+    #  if context.scene.my_enum=="SECOND" and context.scene.my_boolal:
+        #  mapstoexpo.append('Base Color')
+    #  #  if context.scene.my_enum=="FIRST" and context.scene.my_boolme:
+    #  if context.scene.my_boolme:
+        #  mapstoexpo.append('Metallic')  # blender 3.x metallic idx from 4->6
+    #  if context.scene.my_boolno:
+        #  mapstoexpo.append('Normal') # blender 3.x normal idx from 17->22
+        #  mapstoexpo.append(22) # blender 3.x normal idx from 17->22
     
     roughnode=True
     resultname=""
@@ -912,169 +911,199 @@ def mainPBRConvert(context, cfgs, mapsonly = False):
     ob = bpy.context.object
     nodes = 0
 
+    # flags
+    bake_rough_to_albedo_a = context.scene.my_enum=="FIRST" and context.scene.my_boolal
+    bake_rough_to_metallic_a = context.scene.my_enum=="SECOND" and context.scene.my_boolme
+
+    # find albedo / metallic map due to user choice
+    # find roughness map and bake it into albedo / metallic map
     if ob.type=='MESH':
         me=ob.data
         #  mat_offset=len(me.materials)
+        # TODO: multiple materials
         slot = me.materials[0]
         #  for slot in me.materials:
             
         dif = slot.node_tree.nodes['Principled BSDF']
-        socket2=dif.inputs[9] # roughness idx
+        #  socket2=dif.inputs[9] # roughness idx
+
+        # flag for confirming the roughness baking is viable
         nodes=0
         
-        socket=None
-        if context.scene.my_enum=="FIRST" and context.scene.my_boolal:
-            socket = dif.inputs[0]
+        socket_name=None
+        if bake_rough_to_albedo_a:
+            #  socket = dif.inputs[0]
             print("Converting Roughness to Albedo alpha")
-            resultname="Albedo"
-        if context.scene.my_enum=="SECOND" and context.scene.my_boolme:
-            socket=dif.inputs[6]
+            socket_name="Base Color"
+        elif bake_rough_to_metallic_a:
+            #  socket=dif.inputs[6]
             print("Converting Roughness to Metallic alpha")
-            resultname="Metallic"        
+            socket_name="Metallic"        
 
         # find albedo / metallic map and waiting for fill roughness(smoothness) to alpha channel
-        try:
-            link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket)
-            imageNode = link.from_node #The node this link is coming from
-
-            failsafe = 5
-            while imageNode.type != 'TEX_IMAGE' and failsafe > 0:
-                imageNode = next(ipt for ipt in imageNode.inputs if ipt.links).links[0].from_node
-                failsafe-=1;
-            if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
-                image = imageNode.image #Get the image
-                imagename=image.name
-                print( "result", image.name, image.filepath )
-                newname=slot.name                
+        image = retrieve_image(socket_name, slot, cfgs)
+        if image != None:
+            imagename = image.name
+            newname = slot.name
             print( "albedo or metallic map for alpha channel injection found" )
-        except:
-            print( "no link for base color" )
+        else:
+            print( "no link for base color / metallic" )
             nodes=nodes+1
+
+        #  try:
+            #  link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket)
+            #  imageNode = link.from_node #The node this link is coming from
+
+            #  failsafe = 5
+            #  while imageNode.type != 'TEX_IMAGE' and failsafe > 0:
+                #  imageNode = next(ipt for ipt in imageNode.inputs if ipt.links).links[0].from_node
+                #  failsafe-=1;
+            #  if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
+                #  image = imageNode.image #Get the image
+                #  imagename=image.name
+                #  print( "result", image.name, image.filepath )
+                #  newname=slot.name
+            #  print( "albedo or metallic map for alpha channel injection found" )
+        #  except:
+            #  print( "no link for base color" )
+            #  nodes=nodes+1
         #  find roughtness map
-        try:
-            link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket2)
-            imageNode = link.from_node #The node this link is coming from
-            #  print("imageNode name is " + imageNode.name)
-            failsafe = 5
-            skt=link.from_socket
-            while imageNode.type != 'TEX_IMAGE' and failsafe > 0:
-                #  print(imageNode.label + "->" + nextnode)
-                if imageNode.type == 'SEPARATE_COLOR':
-                    rough_from_channel = imageNode.outputs.find(skt.name)
-                    print("roughtness data is from channel " + skt.name) 
-                imageNode = next(ipt for ipt in imageNode.inputs if ipt.links).links[0].from_node
-                # check if color data is been seperated for roughness
-                failsafe-=1;
-            if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
-                image = imageNode.image #Get the image
-                roughimagename=image.name
-                print( "result", roughimagename, image.filepath )                 
+        img_rough = retrieve_image('Roughness', slot, cfgs)
+        if img_rough != None:
+            roughimagename = img_rough.name
             print( "roughness map found" )
-        except:
+        else:
             print( "no link for roughness" )
             nodes=nodes+1
             roughnode=None
-    if nodes<2:
-        if roughnode:                    
-            imageold = bpy.data.images[imagename]  
-            print("name of image which to inject: " + imagename)
-            rough_img=bpy.data.images[roughimagename]
-            width = imageold.size[0]
-            height = imageold.size[1]
-            print("size of image whitch to inject: " + str(height))
-            bpy.ops.image.new(name="PBR_Diff", width=width, height=height)
-            image = bpy.data.images['PBR_Diff']  
-            index=0
-            Alpha_list=list(rough_img.pixels)
-            #  Alpha_list_new=[]
-            RGBA_list = list(imageold.pixels)
-            RGBA_list_new=[]
-            for i in RGBA_list:    
-                RGBA_list_new.append(i)
-            index=0    
-            print("copying pixels from " + CHANNELS[rough_from_channel] + " to alpha channel of target texture...")
-            for i in RGBA_list_new:
-                if index%4==0:
-                    # find specific channel
-                    clr = abs(Alpha_list[index+rough_from_channel]-1)
-                    #  r=abs(Alpha_list[index]-1)
-                    #  g=abs(Alpha_list[index+1]-1)
-                    #  b=abs(Alpha_list[index+2]-1)
-                    #  al=mean([r,g,b])
-                    al=clr
-                    RGBA_list_new[index+3]=al
-                    #  print(str(RGBA_list_new[index+3]))
-                index=index+1
-            image.pixels=RGBA_list_new
-            
-            filetp=""
-            if context.scene.my_enum2=="PNG":
-                filetp='png'
-            else:
-                filetp='tga'
-            if mapsonly:
-                if context.scene.my_enum=="FIRST" and context.scene.my_boolal:
-                    path_albedo=context.scene.my_string_prop+newname+"_"+resultname+"."+filetp    
-                if context.scene.my_enum=="SECOND" and context.scene.my_boolme:
-                    path_metal=context.scene.my_string_prop+newname+"_"+resultname+"."+filetp    
-            path=""
-            if context.scene.my_enum=="FIRST" and context.scene.my_boolal:
-                path = path_albedo
-            if context.scene.my_enum=="SECOND" and context.scene.my_boolme:
-                path = path_metal
-            image.filepath_raw = path
-            image.file_format = context.scene.my_enum2            
-            image.save()
-            print("save injected albedo/metallic map to " + path)
-            # do not clear bpy.data.images['PBR_Diff'] yet for possible usage later
-            #  image.user_clear()
-            #  bpy.data.images.remove(image)
+
+        #  try:
+            #  link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket2)
+            #  imageNode = link.from_node #The node this link is coming from
+            #  #  print("imageNode name is " + imageNode.name)
+            #  failsafe = 5
+            #  skt=link.from_socket
+            #  while imageNode.type != 'TEX_IMAGE' and failsafe > 0:
+                #  #  print(imageNode.label + "->" + nextnode)
+                #  if imageNode.type == 'SEPARATE_COLOR':
+                    #  rough_from_channel = imageNode.outputs.find(skt.name)
+                    #  print("roughness data is from channel " + skt.name)
+                #  imageNode = next(ipt for ipt in imageNode.inputs if ipt.links).links[0].from_node
+                #  # check if color data is been seperated for roughness
+                #  failsafe-=1;
+            #  if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
+                #  image = imageNode.image #Get the image
+                #  roughimagename=image.name
+                #  print( "result", roughimagename, image.filepath )
+            #  print( "roughness map found" )
+        #  except:
+            #  print( "no link for roughness" )
+            #  nodes=nodes+1
+            #  roughnode=None
+
+    # only works when both target map and roughtness map are valid
+    if nodes<2 and roughnode:
+        imageold = bpy.data.images[imagename]  
+        print("name of image which to inject: " + imagename)
+        rough_img=bpy.data.images[roughimagename]
+        width = imageold.size[0]
+        height = imageold.size[1]
+        print("size of image whitch to inject: " + str(height))
+        bpy.ops.image.new(name="PBR_Diff", width=width, height=height)
+        image = bpy.data.images['PBR_Diff']  
+        index=0
+        Alpha_list=list(rough_img.pixels)
+        #  Alpha_list_new=[]
+        RGBA_list = list(imageold.pixels)
+        RGBA_list_new=[]
+        for i in RGBA_list:    
+            RGBA_list_new.append(i)
+        index=0    
+        rough_from_channel = cfgs['rough_from_channel']
+        print("copying pixels from " + CHANNELS[rough_from_channel] + " to alpha channel of target texture...")
+        for i in RGBA_list_new:
+            if index%4==0:
+                # find specific channel
+                clr = abs(Alpha_list[index+rough_from_channel]-1)
+                #  r=abs(Alpha_list[index]-1)
+                #  g=abs(Alpha_list[index+1]-1)
+                #  b=abs(Alpha_list[index+2]-1)
+                #  al=mean([r,g,b])
+                al=clr
+                RGBA_list_new[index+3]=al
+                #  print(str(RGBA_list_new[index+3]))
+            index=index+1
+        image.pixels=RGBA_list_new
+        
+        filetp=""
+        if context.scene.my_enum2=="PNG":
+            filetp='png'
+        else:
+            filetp='tga'
+        if mapsonly:
+            if bake_rough_to_albedo_a:
+                path_albedo=context.scene.my_string_prop+newname+"_"+resultname+"."+filetp    
+            elif bake_rough_to_metallic_a:
+                path_metal=context.scene.my_string_prop+newname+"_"+resultname+"."+filetp    
+        path=""
+        if bake_rough_to_albedo_a:
+            path = path_albedo
+        elif bake_rough_to_metallic_a:
+            path = path_metal
+        image.filepath_raw = path
+        image.file_format = context.scene.my_enum2            
+        image.save()
+        print("save injected albedo/metallic map to " + path)
+        # do not clear bpy.data.images['PBR_Diff'] yet for possible usage later
+        #  image.user_clear()
+        #  bpy.data.images.remove(image)
             
         
-        else:
-            imageold = bpy.data.images[imagename]
-            width = imageold.size[0]
-            height = imageold.size[1]
-            bpy.ops.image.new(name="PBR_Diff", width=width, height=height)
-            RGBA_list = list(imageold.pixels)            
-            image = bpy.data.images['PBR_Diff']
-            image.pixels=RGBA_list
-            filetp=""
-            if context.scene.my_enum2=="PNG":
-                filetp='png'
-            else:
-                filetp='tga'
-            if mapsonly:
-                if context.scene.my_enum=="FIRST" and context.scene.my_boolal:
-                    path_albedo=context.scene.my_string_prop+newname+"_"+resultname+"."+filetp    
-                if context.scene.my_enum=="SECOND" and context.scene.my_boolme:
-                    path_metal=context.scene.my_string_prop+newname+"_"+resultname+"."+filetp    
-            if context.scene.my_enum=="FIRST" and context.scene.my_boolal:
-                image.filepath_raw = path_albedo
-            if context.scene.my_enum=="SECOND" and context.scene.my_boolme:
-                image.filepath_raw = path_metal
-            image.file_format = context.scene.my_enum2
-            image.save()
+        #  else:
+            #  imageold = bpy.data.images[imagename]
+            #  width = imageold.size[0]
+            #  height = imageold.size[1]
+            #  bpy.ops.image.new(name="PBR_Diff", width=width, height=height)
+            #  RGBA_list = list(imageold.pixels)
+            #  image = bpy.data.images['PBR_Diff']
+            #  image.pixels=RGBA_list
+            #  filetp=""
+            #  if context.scene.my_enum2=="PNG":
+                #  filetp='png'
+            #  else:
+                #  filetp='tga'
+            #  if mapsonly:
+                #  if context.scene.my_enum=="FIRST" and context.scene.my_boolal:
+                    #  path_albedo=context.scene.my_string_prop+newname+"_"+resultname+"."+filetp
+                #  if context.scene.my_enum=="SECOND" and context.scene.my_boolme:
+                    #  path_metal=context.scene.my_string_prop+newname+"_"+resultname+"."+filetp
+            #  if context.scene.my_enum=="FIRST" and context.scene.my_boolal:
+                #  image.filepath_raw = path_albedo
+            #  if context.scene.my_enum=="SECOND" and context.scene.my_boolme:
+                #  image.filepath_raw = path_metal
+            #  image.file_format = context.scene.my_enum2
+            #  image.save()
 
-            path=""
-            if context.scene.my_enum=="FIRST" and context.scene.my_boolal:
-                path = path_albedo
-            if context.scene.my_enum=="SECOND" and context.scene.my_boolme:
-                path = path_metal
-            print("(no rough map) save injected into albedo/metallic map as " + path)
-            image.user_clear()
-            bpy.data.images.remove(image)            
+            #  path=""
+            #  if context.scene.my_enum=="FIRST" and context.scene.my_boolal:
+                #  path = path_albedo
+            #  if context.scene.my_enum=="SECOND" and context.scene.my_boolme:
+                #  path = path_metal
+            #  print("(no rough map) save injected into albedo/metallic map as " + path)
+            #  image.user_clear()
+            #  bpy.data.images.remove(image)
             
     ob = bpy.context.object
     if ob.type=='MESH':
         me=ob.data
         #  mat_offset=len(me.materials)
+        # TODO: multiple materials
         slot = me.materials[0]
         #  olddif = slot.node_tree.nodes['Principled BSDF']
         dif = slot.node_tree.nodes['Principled BSDF']        
         for m in mapstoexpo:
             istex=None
-            print("Try fetching: "+mapnames[m] + "...")
+            print("Try fetching: "+ m + "...")
             #  if len(dif.inputs) < 26:
                 #  print("dif name is " + dif.name)
             socket=dif.inputs[m]
@@ -1082,31 +1111,39 @@ def mainPBRConvert(context, cfgs, mapsonly = False):
             #  link=next(link for link in slot.node_tree.links if link.to_node==dif and link.to_socket == socket)
             #  imageNode = link.from_node
             if len(socket.links) == 0:
-                print("no map for socket " + mapnames[m])
+                print("no map for socket " + m)
                 continue
-            imageNode = socket.links[0].from_node
-            skt = socket.links[0].from_socket
-            failsafe = 15
-            while failsafe > 0 and imageNode.type != 'TEX_IMAGE':
-                # try check which channel did the color data comes from
-                if m==6 and imageNode.type == 'SEPARATE_COLOR':
-                    metal_from_channel = imageNode.outputs.find(skt.name)
-                    print("metallic data is from channel " + skt.name) 
-                imageNode = next(ipt.links[0] for ipt in imageNode.inputs if ipt.links).from_node
-                failsafe-=1
+            
+            img = retrieve_image(m, slot, cfgs)
+            if img != None:
+                imagename = img.name
+                newname = slot.name
+                istex = True
+            #  imageNode = socket.links[0].from_node
+            #  skt = socket.links[0].from_socket
+            #  failsafe = 15
+            #  while failsafe > 0 and imageNode.type != 'TEX_IMAGE':
+                #  # try check which channel did the color data comes from
+                #  if m==6 and imageNode.type == 'SEPARATE_COLOR':
+                    #  metal_from_channel = imageNode.outputs.find(skt.name)
+                    #  print("metallic data is from channel " + skt.name)
+                #  imageNode = next(ipt.links[0] for ipt in imageNode.inputs if ipt.links).from_node
+                #  failsafe-=1
 
-            if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
-                image = imageNode.image #Get the image
-                imagename=image.name
-                print( "result", image.name, image.filepath )
-                newname=slot.name
-                istex=True
+            #  if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
+                #  image = imageNode.image #Get the image
+                #  imagename=image.name
+                #  print( "result", image.name, image.filepath )
+                #  newname=slot.name
+                #  istex=True
 
             if istex:
                 imageold = bpy.data.images[imagename]
-                if m == 6 and context.scene.my_enum=="SECOND" and context.scene.my_boolme:
+                # if user choosed baking roughtness into A channel of metallic map
+                # retrieve image from 'PBR_Diff'
+                if (m == 'Metallic' and bake_rough_to_metallic_a) or (m == 'Base Color' and bake_rough_to_albedo_a):
                     imageold = bpy.data.images['PBR_Diff']
-                    print("get incomplete texture for filling R channel of metallic map")
+                    print("get incomplete map where roughtness baked")
                 width = imageold.size[0]
                 height = imageold.size[1]
                 bpy.ops.image.new(name="Temporary_map_to_export", width=width, height=height)
@@ -1115,7 +1152,8 @@ def mainPBRConvert(context, cfgs, mapsonly = False):
                 # if user choosed baking roughtness into A channel of metallic map
                 # then here we should make sure metallic R is valid
                 # TODO: make mask map for HDRP
-                if m == 6 and metal_from_channel != 0 and context.scene.my_boolme:
+                metal_from_channel = cfgs['metal_from_channel']
+                if m == 'Metallic' and metal_from_channel != 0 and context.scene.my_boolme:
                     RGBA_list_new=[]
                     for i in RGBA_list:    
                         RGBA_list_new.append(i)
@@ -1140,24 +1178,27 @@ def mainPBRConvert(context, cfgs, mapsonly = False):
                     filetp='tga'
                    
                 if mapsonly:
-                    path=context.scene.my_string_prop+newname+"_"+mapnames[m]+"."+filetp
+                    path=context.scene.my_string_prop+newname+"_"+m+"."+filetp
                 else:
-                    if m == 6:
+                    if m == 'Metallic':
                         path=path_metal
                         cfgs['h_metal'] = image.size[1]
                         cfgs['w_metal'] = image.size[0]
                         print("metal map size is " + str(image.size[1]))
-                    elif m == 0:
+                    elif m == 'Base Color':
                         cfgs['h_albedo'] = image.size[1]
                         cfgs['w_albedo'] = image.size[0]
                         print("albedo map size is " + str(image.size[1]))
                         path=path_albedo
-                    else:
+                    elif m == 'Normal':
                         cfgs['h_normal'] = image.size[1]
                         cfgs['w_normal'] = image.size[0]
                         print("normal map size is " + str(image.size[1]))
                         path=path_normal
-                print("Exporting "+mapnames[m] + "as " + path)
+                    else:
+                        path = ""
+                        pass
+                print("Exporting "+m + " as " + path)
                 image.filepath_raw = path
                 image.file_format = context.scene.my_enum2
                 image.save()
@@ -1174,10 +1215,11 @@ def mainPBRConvert(context, cfgs, mapsonly = False):
     fbxguid=cfgs['guid_fbx']
     matguid=cfgs['guid_mat']
     assetname=bpy.context.selected_objects[0].name
-    if not os.path.exists(path+prefabguid):
-        os.makedirs(path+prefabguid)
-    file=open(path+prefabguid+"\\pathname","w")
-    file.write("Assets/"+assetname+"/" +assetname+ ".prefab")     
+
+    #  if not os.path.exists(path+prefabguid):
+        #  os.makedirs(path+prefabguid)
+    #  file=open(path+prefabguid+"\\pathname","w")
+    #  file.write("Assets/"+assetname+"/" +assetname+ ".prefab")
         
     prefabmeta="""fileFormatVersion: 2
 guid: """+prefabguid+"""
@@ -1188,8 +1230,8 @@ PrefabImporter:
   assetBundleVariant: 
 """    
 
-    file=open(path+prefabguid+"\\asset.meta","w")
-    file.write(prefabmeta)
+    #  file=open(path+prefabguid+"\\asset.meta","w")
+    #  file.write(prefabmeta)
 
     prefabasset="""%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
@@ -1276,14 +1318,16 @@ MeshRenderer:
   m_AdditionalVertexStreams: {fileID: 0}
 """
 
-    file=open(path+prefabguid+"\\asset","w")
-    file.write(prefabasset)
+    #  file=open(path+prefabguid+"\\asset","w")
+    #  file.write(prefabasset)
+
+    prepare_upack_asset(path, prefabguid, assetname, assetname+".prefab", prefabasset, prefabmeta)
     print("write prefab done") 
 
-    if not os.path.exists(path+scriptguid):
-        os.makedirs(path+scriptguid)
-    file=open(path+scriptguid+"\\pathname","w")
-    file.write("Assets/"+assetname+"/PrefabPostProcess.cs")     
+    #  if not os.path.exists(path+scriptguid):
+        #  os.makedirs(path+scriptguid)
+    #  file=open(path+scriptguid+"\\pathname","w")
+    #  file.write("Assets/"+assetname+"/PrefabPostProcess.cs")
 
     # AssetPostprocessor script for prefab
     ppscript="""using System.Collections;
@@ -1314,9 +1358,9 @@ public class PrefabPostProcess : AssetPostprocessor
     }
 }
     """
-    file=open(path+scriptguid+"\\asset","w")
-    file.write(ppscript)
-    file.close()
+    #  file=open(path+scriptguid+"\\asset","w")
+    #  file.write(ppscript)
+    #  file.close()
 
     ppscriptmeta="""
 fileFormatVersion: 2
@@ -1331,9 +1375,11 @@ MonoImporter:
   assetBundleName: 
   assetBundleVariant: 
     """
-    file=open(path+scriptguid+"\\asset.meta","w")
-    file.write(ppscriptmeta)
-    file.close()
+    #  file=open(path+scriptguid+"\\asset.meta","w")
+    #  file.write(ppscriptmeta)
+    #  file.close()
+
+    prepare_upack_asset(path, scriptguid, assetname, "/PrefabPostProcess.cs", ppscript, ppscriptmeta)
 
     print("write postprocess script done") 
     return cfgs
