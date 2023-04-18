@@ -24,7 +24,7 @@ A ready-to-use prefab will also be provided with extra script for asset post pro
 ## TODO:
 
 - ~~Export separate FBX file~~
-- Export textures only
+- ~~Export textures only~~
 - Skinned mesh support
 - Multi materials support
 - Multi mesh support
