@@ -871,12 +871,12 @@ def mainPBRConvert(context, cfgs, mapsonly = False):
         #  mapsonly=True
         
         
-    path_albedo = cfgs['path_al']
-    path_normal = cfgs['path_nor']
-    path_metal = cfgs['path_met']
     if mapsonly:    
         print("============ START =============== maps only")
     else:
+        path_albedo = cfgs['path_al']
+        path_normal = cfgs['path_nor']
+        path_metal = cfgs['path_met']
         print("============ START =============== unitypackage export")    
     #  path=path
     #  mapnames=['Albedo','Subsurface','Subsurface_Radius','Subsurface_Color','Metallic','Specular','Speular_Tint','Rooughness','Anisotropic','Anisotropic_Rotation','Sheen','Sheen_Tint','Clearcoat','Clearcoat_Roughness','IOR','Transmission','Unknown','Normal','Clearcoat_Normal','Tangent']
@@ -1040,16 +1040,24 @@ def mainPBRConvert(context, cfgs, mapsonly = False):
             filetp='png'
         else:
             filetp='tga'
+        #  if mapsonly:
+            #  if bake_rough_to_albedo_a:
+                #  path_albedo=context.scene.my_string_prop+newname+"_"+resultname+"."+filetp
+            #  elif bake_rough_to_metallic_a:
+                #  path_metal=context.scene.my_string_prop+newname+"_"+resultname+"."+filetp
         if mapsonly:
+            m=""
             if bake_rough_to_albedo_a:
-                path_albedo=context.scene.my_string_prop+newname+"_"+resultname+"."+filetp    
+                m = 'Base Color'
             elif bake_rough_to_metallic_a:
-                path_metal=context.scene.my_string_prop+newname+"_"+resultname+"."+filetp    
-        path=""
-        if bake_rough_to_albedo_a:
-            path = path_albedo
-        elif bake_rough_to_metallic_a:
-            path = path_metal
+                m = 'Metallic'
+            path=context.scene.my_string_prop+newname+"_"+m+"."+filetp
+        else:
+            path=""
+            if bake_rough_to_albedo_a:
+                path = path_albedo
+            elif bake_rough_to_metallic_a:
+                path = path_metal
         image.filepath_raw = path
         image.file_format = context.scene.my_enum2            
         image.save()
@@ -1119,23 +1127,6 @@ def mainPBRConvert(context, cfgs, mapsonly = False):
                 imagename = img.name
                 newname = slot.name
                 istex = True
-            #  imageNode = socket.links[0].from_node
-            #  skt = socket.links[0].from_socket
-            #  failsafe = 15
-            #  while failsafe > 0 and imageNode.type != 'TEX_IMAGE':
-                #  # try check which channel did the color data comes from
-                #  if m==6 and imageNode.type == 'SEPARATE_COLOR':
-                    #  metal_from_channel = imageNode.outputs.find(skt.name)
-                    #  print("metallic data is from channel " + skt.name)
-                #  imageNode = next(ipt.links[0] for ipt in imageNode.inputs if ipt.links).from_node
-                #  failsafe-=1
-
-            #  if imageNode.type == 'TEX_IMAGE': #Check if it is an image texture node
-                #  image = imageNode.image #Get the image
-                #  imagename=image.name
-                #  print( "result", image.name, image.filepath )
-                #  newname=slot.name
-                #  istex=True
 
             if istex:
                 imageold = bpy.data.images[imagename]
@@ -1207,6 +1198,9 @@ def mainPBRConvert(context, cfgs, mapsonly = False):
                 if bpy.data.images.get('PBR_Diff') != None and imageold == bpy.data.images['PBR_Diff']:
                     bpy.data.images.remove(imageold)                         
                     
+
+    if mapsonly:
+        return
 
     # prefabs
     prefabguid = cfgs['guid_prefab']
@@ -1427,8 +1421,6 @@ def mainmatuni(context):
                                             print("match "+slot.name+" i simmilar to "+slot_match.name)
                                             replace_material(obj,slot.name,slot_match.name)
                                             materialsmerged+=1                                       
-
-                                        
     print("merged "+str(materialsmerged)+" materials")
 
 def mainexp(context, name):
@@ -1612,7 +1604,7 @@ class PBRConvert(bpy.types.Operator):
     bl_label="Export texture set"
     
     def execute(self,context):
-        mainPBRConvert(context, "thisisnotunityexport")
+        mainPBRConvert(context, {}, True)
         return{'FINISHED'}               
     
 class UnityMatMerge(bpy.types.Operator):
@@ -1683,7 +1675,7 @@ class OpenBrowser2(bpy.types.Operator):
     
 def register():
     bpy.utils.register_class(AllExport)
-    #  bpy.utils.register_class(PBRConvert)
+    bpy.utils.register_class(PBRConvert)
     bpy.utils.register_class(OpenBrowser)
     bpy.utils.register_class(OpenBrowser2)
     bpy.utils.register_class(UnityTransform)
@@ -1757,7 +1749,7 @@ def register():
     
 def unregister():
     bpy.utils.unregister_class(AllExport)
-    #  bpy.utils.unregister_class(PBRConvert)
+    bpy.utils.unregister_class(PBRConvert)
     bpy.utils.unregister_class(OpenBrowser)
     bpy.utils.unregister_class(OpenBrowser2)
     bpy.utils.unregister_class(UnityTransform)
@@ -1852,8 +1844,8 @@ class UnityExporterPanel(bpy.types.Panel):
         row = layout.row()
         row.prop(context.scene, "my_enum2")
         
-        #  row = layout.row()
-        #  row.operator("cusops.pbrconvert")
+        row = layout.row()
+        row.operator("cusops.pbrconvert")
         
         row = layout.row()
         row.operator("cusops.allexport")
