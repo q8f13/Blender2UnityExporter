@@ -6,19 +6,19 @@ from shutil import Error, copyfile
 from shutil import rmtree
 import tarfile
 
-#  bl_info = {
-        #  "name" : "Blender2Unity Exporter",
-        #  "author" : "q8f13",
-        #  "version" : (0, 0, 1),
-        #  "blender" : (3, 3, 5),
-        #  "location" : "View 3D > Edit Mode > Tool Shelf",
-        #  "description" :
-            #  "Exporting tools for Unity",
-        #  "warning" : "",
-        #  "wiki_url" : "",
-        #  "tracker_url" : "",
-        #  "category" : "Material",
-    #  }
+bl_info = {
+        "name" : "Blender2Unity Exporter",
+        "author" : "q8f13",
+        "version" : (0, 0, 1),
+        "blender" : (3, 3, 5),
+        "location" : "Properties > Object Properties > Unity Exporter",
+        "description" :
+            "Exporting tools for Unity",
+        "warning" : "",
+        "wiki_url" : "",
+        "tracker_url" : "",
+        "category" : "Material",
+    }
 
 CHANNELS = ['R','G','B','A']
 #  rough_from_channel = 0
